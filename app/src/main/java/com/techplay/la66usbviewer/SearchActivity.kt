@@ -1,237 +1,242 @@
-package com.techplay.la66usbviewer;
+package com.techplay.la66usbviewer
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ListView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.blankj.utilcode.util.BarUtils
+import com.blankj.utilcode.util.ColorUtils
+import com.clj.fastble.BleManager
+import com.clj.fastble.callback.BleScanCallback
+import com.clj.fastble.data.BleDevice
+import com.clj.fastble.scan.BleScanRuleConfig
+import com.google.gson.Gson
+import com.lxj.xpopup.XPopup
+import com.lxj.xpopup.core.BasePopupView
+import com.lxj.xpopup.interfaces.OnConfirmListener
+import com.techplay.la66usbviewer.bean.MessageEvent
+import com.techplay.la66usbviewer.config.EventBusId
+import com.techplay.la66usbviewer.utils.PreferencesUtil
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
+// import pub.devrel.easypermissions.EasyPermissions
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+class SearchActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_MAC = "mac"
+        const val EXTRA_NAME = "name"
 
-import com.blankj.utilcode.util.BarUtils;
-import com.blankj.utilcode.util.ColorUtils;
-import com.clj.fastble.BleManager;
-import com.clj.fastble.callback.BleScanCallback;
-import com.clj.fastble.data.BleDevice;
-import com.clj.fastble.scan.BleScanRuleConfig;
-import com.google.gson.Gson;
-import com.lxj.xpopup.XPopup;
-import com.lxj.xpopup.core.BasePopupView;
-import com.lxj.xpopup.interfaces.OnConfirmListener;
-import com.techplay.la66usbviewer.bean.MessageEvent;
-import com.techplay.la66usbviewer.config.EventBusId;
-import com.techplay.la66usbviewer.utils.PreferencesUtil;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import pub.devrel.easypermissions.EasyPermissions;
-
-public class SearchActivity extends Activity {
-
-    private ListView listView;
-    private ResultAdapter mResultAdapter;
-    private SwipeRefreshLayout swipeRefreshLayout;
-    private TextView txt2;
-    private Boolean auto;
-    private Boolean isLink = false;
-    private BasePopupView loadingPopup;
-    private String mac;
-    private String name;
-
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        mac = getIntent().getStringExtra("mac");
-        name = getIntent().getStringExtra("name");
-        BarUtils.setStatusBarColor(this, ColorUtils.getColor(R.color.transparent));
-        setContentView(R.layout.activity_search);
-        EventBus.getDefault().register(this);
-        chechLocation();
-        initView();
-    }
-
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        EventBus.getDefault().unregister(this);
-        if (swipeRefreshLayout != null)
-            swipeRefreshLayout.setRefreshing(false);
-
-    }
-
-    public void initView() {
-        findViewById(R.id.title_left).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
+        fun start(context: Context, mac: String, name: String? = null) {
+            val intent = Intent(context, SearchActivity::class.java).apply {
+                putExtra(EXTRA_MAC, mac)
+                putExtra(EXTRA_NAME, name)
             }
-        });
-        loadingPopup = new XPopup.Builder(this).asLoading();
-        txt2 = findViewById(R.id.txt2);
-        txt2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isLink) {
-                    MessageEvent<BleDevice> messageEvent = new MessageEvent<>();
-                    messageEvent.setId(EventBusId.dislink);
-                    EventBus.getDefault().post(messageEvent);
+            context.startActivity(intent)
+        }
+    }
+
+    private lateinit var listView: RecyclerView
+    private lateinit var resultAdapter: ResultAdapter
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var txt2: TextView
+    private lateinit var mac: String
+    private lateinit var name: String
+    private lateinit var loadingPopup: BasePopupView
+
+    private val auto: Boolean? = null
+    private val isLink: Boolean = false
+
+
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        mac = requireNotNull(intent.getStringExtra(EXTRA_MAC)) {
+            "MAC address is required to launch this activity"
+        }
+        name = requireNotNull(intent.getStringExtra(EXTRA_NAME)) {
+            "NAME is required to launch this activity"
+        }
+
+        BarUtils.setStatusBarColor(this, ColorUtils.getColor(R.color.transparent))
+        setContentView(R.layout.activity_search)
+        EventBus.getDefault().register(this)
+        chechLocation()
+        initView()
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        EventBus.getDefault().unregister(this)
+        swipeRefreshLayout?.isRefreshing = false
+    }
+
+    fun initView() {
+        findViewById<View>(R.id.title_left).setOnClickListener { finish() }
+        loadingPopup = XPopup.Builder(this).asLoading()
+        txt2 = findViewById(R.id.txt2)
+        txt2.setOnClickListener(View.OnClickListener {
+            if (isLink) {
+                val messageEvent: MessageEvent<BleDevice> =
+                    MessageEvent<BleDevice>()
+                messageEvent.id = EventBusId.dislink
+                EventBus.getDefault().post(messageEvent)
+            }
+        })
+        if (mac!!.length > 0) {
+            txt2.setText((if (name!!.length > 0) name else mac) + "   " + resources.getString(R.string.on_connected))
+        } else {
+            txt2.setText(resources.getString(R.string.no_connected))
+        }
+        swipeRefreshLayout = findViewById<SwipeRefreshLayout>(R.id.swipeRefreshLayout)
+        listView = findViewById(R.id.recyclerView)
+        listView.layoutManager = LinearLayoutManager(this)
+        resultAdapter = ResultAdapter(mac)
+        listView.setAdapter(resultAdapter)
+        swipeRefreshLayout.setOnRefreshListener { //刷新需执行的操作
+            setble()
+        }
+        setble()
+    }
+
+    fun initData() {
+    }
+
+    private val requestLocationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                // Permission granted
+                onLocationPermissionGranted()
+            } else {
+                // Permission denied
+                showPermissionDeniedToast()
+            }
+        }
+
+    fun chechLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Permission already granted
+            onLocationPermissionGranted()
+        } else {
+            // Request permission
+            requestLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    private fun onLocationPermissionGranted() {
+        // Perform actions that require location permissions
+        Log.d("Permission", "Location permission granted.")
+    }
+
+    private fun showPermissionDeniedToast() {
+        Toast.makeText(this, getString(R.string.permission_denied_message), Toast.LENGTH_SHORT).show()
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onLink(event: MessageEvent<BleDevice?>) {
+        if (event.id != EventBusId.onLink) {
+            return
+        }
+        XPopup.Builder(this@SearchActivity)
+            .asConfirm("发现设备", "是否连接该设备", object : OnConfirmListener {
+                override fun onConfirm() {
+                    val messageEvent1: MessageEvent<BleDevice> = MessageEvent<BleDevice>()
+                    messageEvent1.id = EventBusId.onLinkMain
+                    EventBus.getDefault().post(messageEvent1)
                 }
-            }
-        });
-        if (mac.length() > 0) {
-            txt2.setText((name.length() > 0 ? name : mac) + "   " + getResources().getString(R.string.on_connected));
-        } else {
-            txt2.setText(getResources().getString(R.string.no_connected));
-        }
-        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        listView = findViewById(R.id.listView);
-        mResultAdapter = new ResultAdapter(this, mac);
-        listView.setAdapter(mResultAdapter);
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                //刷新需执行的操作
-                setble();
-            }
-        });
-        setble();
-    }
-
-    public void initData() {
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        // 将返回结果转给EasyPermissions
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
-    }
-
-    public void chechLocation() {
-        String[] perms = {Manifest.permission.ACCESS_FINE_LOCATION};
-        if (EasyPermissions.hasPermissions(this, perms)) {
-            // 已获取权限
-            // ...
-
-        } else {
-            // 没有权限，现在去获取
-            // ...
-            EasyPermissions.requestPermissions(this, getResources().getText(R.string.applyBlue).toString(),
-                    1001, perms);
-        }
-
+            }).show()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onLink(MessageEvent<BleDevice> event) {
-        if (!event.getId().equals(EventBusId.onLink)) {
-            return;
+    fun onreLink(event: MessageEvent<BleDevice?>) {
+        if (event.id != EventBusId.onreLink) {
+            return
         }
-        new XPopup.Builder(SearchActivity.this).asConfirm("发现设备", "是否连接该设备", new OnConfirmListener() {
-            @Override
-            public void onConfirm() {
-                MessageEvent<BleDevice> messageEvent1 = new MessageEvent<>();
-                messageEvent1.setId(EventBusId.onLinkMain);
-                EventBus.getDefault().post(messageEvent1);
-            }
-        }).show();
+        XPopup.Builder(this@SearchActivity)
+            .asConfirm("发现新设备", "是否从新连接到新设备", object : OnConfirmListener {
+                override fun onConfirm() {
+                    val messageEvent1: MessageEvent<BleDevice> = MessageEvent<BleDevice>()
+                    messageEvent1.id = EventBusId.onreLinkMain
+                    EventBus.getDefault().post(messageEvent1)
+                }
+            }).show()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onreLink(MessageEvent<BleDevice> event) {
-        if (!event.getId().equals(EventBusId.onreLink)) {
-            return;
+    fun linkSuccess(event: MessageEvent<BleDevice?>) {
+        if (event.id != EventBusId.linkSuccess) {
+            return
         }
-        new XPopup.Builder(SearchActivity.this).asConfirm("发现新设备", "是否从新连接到新设备", new OnConfirmListener() {
-            @Override
-            public void onConfirm() {
-                MessageEvent<BleDevice> messageEvent1 = new MessageEvent<>();
-                messageEvent1.setId(EventBusId.onreLinkMain);
-                EventBus.getDefault().post(messageEvent1);
-            }
-        }).show();
+        txt2!!.text = event.name + "   " + resources.getString(R.string.on_connected)
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void linkSuccess(MessageEvent<BleDevice> event) {
-        if (!event.getId().equals(EventBusId.linkSuccess)) {
-            return;
-        }
-        txt2.setText(event.getName() + "   " + getResources().getString(R.string.on_connected));
+    fun setble() {
+        loadingPopup.show()
+        Log.e("setble", "setble")
+        val scanRuleConfig: BleScanRuleConfig = BleScanRuleConfig.Builder()
 
-    }
+            .setScanTimeOut(10000) // 扫描超时时间，可选，默认10秒
+            .build()
+        BleManager.getInstance().initScanRule(scanRuleConfig)
 
-    public void setble() {
-
-        loadingPopup.show();
-        Log.e("setble", "setble");
-        BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
-
-                .setScanTimeOut(10000)              // 扫描超时时间，可选，默认10秒
-                .build();
-        BleManager.getInstance().initScanRule(scanRuleConfig);
-
-        BleManager.getInstance().scan(new BleScanCallback() {
-            @Override
-            public void onScanStarted(boolean success) {
-
+        BleManager.getInstance().scan(object : BleScanCallback() {
+            override fun onScanStarted(success: Boolean) {
             }
 
-            @Override
-            public void onLeScan(BleDevice bleDevice) {
-                Log.e("lkklj", new Gson().toJson(bleDevice));
-                Log.e("setble33", bleDevice.getMac());
+            override fun onLeScan(bleDevice: BleDevice) {
+                Log.e("lkklj", Gson().toJson(bleDevice))
+                Log.e("setble33", bleDevice.getMac())
             }
 
-            @Override
-            public void onScanning(BleDevice bleDevice) {
-                Log.e("setble22", bleDevice.getMac());
+            override fun onScanning(bleDevice: BleDevice) {
+                Log.e("setble22", bleDevice.getMac())
             }
 
-            @Override
-            public void onScanFinished(List<BleDevice> scanResultList) {
+            override fun onScanFinished(scanResultList: MutableList<BleDevice>) {
+                myscanResultList.clear() // Clear the previous results
+                myscanResultList.addAll(scanResultList) // Add new results
+                resultAdapter.addResult(myscanResultList)
+                resultAdapter.notifyDataSetChanged()
 
-                myscanResultList = scanResultList;
-                mResultAdapter.addResult(myscanResultList);
-                mResultAdapter.notifyDataSetChanged();
+                Log.e("setble22onScanFinished", myscanResultList.size.toString() + "")
+                swipeRefreshLayout.isRefreshing = false
+                loadingPopup.dismiss()
+                val mac: String = PreferencesUtil.getString(this@SearchActivity, "mac", "")
 
-                Log.e("setble22onScanFinished", myscanResultList.size() + "");
-                swipeRefreshLayout.setRefreshing(false);
-                loadingPopup.dismiss();
-                String mac = PreferencesUtil.getString(SearchActivity.this, "mac", "");
-
-                for (int i = 0; i < myscanResultList.size(); i++) {
-                    Log.e("lkklj", new Gson().toJson(myscanResultList.get(i)));
-                    if (myscanResultList.get(i).getName() != null) {
-                        if (myscanResultList.get(i).getMac().equalsIgnoreCase(mac)) {
-                            BleDevice bleDevice = myscanResultList.get(i);
-                            Log.e("4564", bleDevice.getMac());
-                            MessageEvent<BleDevice> messageEvent1 = new MessageEvent<>();
-                            messageEvent1.setBody(bleDevice);
-                            messageEvent1.setId(EventBusId.auto);
-                            EventBus.getDefault().post(messageEvent1);
-                            break;
+                for (i in myscanResultList.indices) {
+                    Log.e("lkklj", Gson().toJson(myscanResultList[i]))
+                    if (myscanResultList[i].getName() != null) {
+                        if (myscanResultList[i].getMac().equals(mac, ignoreCase = true)) {
+                            val bleDevice: BleDevice = myscanResultList[i]
+                            Log.e("4564", bleDevice.getMac())
+                            val messageEvent1: MessageEvent<BleDevice> = MessageEvent<BleDevice>()
+                            messageEvent1.body = bleDevice
+                            messageEvent1.id = EventBusId.auto
+                            EventBus.getDefault().post(messageEvent1)
+                            break
                         }
                     }
                 }
 
 
-//                for (BleDevice d : scanResultList) {
+                //                for (BleDevice d : scanResultList) {
 //                    Log.e("setble99:", d.getMac());
 //                    if (d.getName() != null) {
 //                        Log.e("setble99Name:", d.getName());
@@ -246,103 +251,64 @@ public class SearchActivity extends Activity {
 //                    }
 //                }
             }
-        });
+        })
     }
 
-    public List<BleDevice> myscanResultList;
+    var myscanResultList: MutableList<BleDevice> = mutableListOf()
 
-    private class ResultAdapter extends BaseAdapter {
+    class ResultAdapter(private val mac: String) :
+        RecyclerView.Adapter<ResultAdapter.ViewHolder>() {
 
-        private Context context;
-        private List<BleDevice> characteristicList;
-        private String mac;
+        private val characteristicList = mutableListOf<BleDevice>()
 
-        ResultAdapter(Context context, String mac) {
-            this.context = context;
-            this.mac = mac;
-            characteristicList = new ArrayList<>();
+        // Add new items to the list
+        fun addResult(newCharacteristicList: List<BleDevice>) {
+            characteristicList.clear()
+            characteristicList.addAll(newCharacteristicList)
+            notifyDataSetChanged()
         }
 
-        void addResult(List<BleDevice> characteristicList) {
-//            for ( int i=0;i<characteristicList.size();i++ ){
-//
-//            }
-            this.characteristicList = characteristicList;
+        // Clear all items
+        fun clear() {
+            characteristicList.clear()
+            notifyDataSetChanged()
         }
 
-        void clear() {
-            characteristicList.clear();
+        override fun getItemCount(): Int = characteristicList.size
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.adapter_ble, parent, false)
+            return ViewHolder(view)
         }
 
-        @Override
-        public int getCount() {
-            return characteristicList.size();
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val bleDevice = characteristicList[position]
+            holder.bind(bleDevice, mac)
         }
 
-        @Override
-        public BleDevice getItem(int position) {
-            if (position > characteristicList.size())
-                return null;
-            return characteristicList.get(position);
-        }
+        // ViewHolder class to manage individual item views
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val txtTitle: TextView = itemView.findViewById(R.id.txt_title)
+            private val txtUuid: TextView = itemView.findViewById(R.id.txt_uuid)
+            private val txtType: TextView = itemView.findViewById(R.id.txt_type)
 
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
+            fun bind(bleDevice: BleDevice, mac: String) {
+                txtTitle.text = bleDevice.getName() ?: bleDevice.getMac() ?: "未知"
+                txtUuid.text = bleDevice.getMac()
+                txtType.setText(
+                    if (mac == bleDevice.getMac()) R.string.on_connected else R.string.no_connected
+                )
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder holder;
-            if (convertView != null) {
-                holder = (ViewHolder) convertView.getTag();
-            } else {
-                convertView = View.inflate(context, R.layout.adapter_ble, null);
-                holder = new ViewHolder();
-                holder.txt_title = (TextView) convertView.findViewById(R.id.txt_title);
-                holder.txt_uuid = (TextView) convertView.findViewById(R.id.txt_uuid);
-                holder.txt_type = (TextView) convertView.findViewById(R.id.txt_type);
-                holder.bleDevice = characteristicList.get(position);
-                convertView.setTag(holder);
-            }
-//            holder.txt_title.setText("数据:");
-            holder.bleDevice = characteristicList.get(position);
-            if (characteristicList.get(position).getName() != null) {
-                holder.txt_title.setText(characteristicList.get(position).getName());
-                holder.txt_uuid.setText(characteristicList.get(position).getMac());
-            } else {
-                if (characteristicList.get(position).getMac() != null) {
-                    holder.txt_title.setText(characteristicList.get(position).getMac());
-                } else {
-                    holder.txt_title.setText("未知");
+                itemView.setOnClickListener {
+                    // Post the event using EventBus
+                    val messageEvent = MessageEvent<BleDevice>().apply {
+                        body = bleDevice
+                        id = EventBusId.BleDevice
+                    }
+                    EventBus.getDefault().post(messageEvent)
                 }
             }
-            if (mac.equals(characteristicList.get(position).getMac())) {
-                holder.txt_type.setText(R.string.on_connected);
-            } else {
-                holder.txt_type.setText(R.string.no_connected);
-            }
-            convertView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    ViewHolder viewHolder = (ViewHolder) v.getTag();
-                    BleDevice bleDevice = viewHolder.bleDevice;
-                    Log.e("4564", bleDevice.getMac());
-                    MessageEvent<BleDevice> messageEvent = new MessageEvent<>();
-                    messageEvent.setBody(bleDevice);
-                    messageEvent.setId(EventBusId.BleDevice);
-                    EventBus.getDefault().post(messageEvent);
-                }
-            });
-            return convertView;
-        }
-
-        class ViewHolder {
-            TextView txt_title;
-            TextView txt_uuid;
-            TextView txt_type;
-            BleDevice bleDevice;
         }
     }
-
 }

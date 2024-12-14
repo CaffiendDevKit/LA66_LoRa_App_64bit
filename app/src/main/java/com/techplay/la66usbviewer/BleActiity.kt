@@ -114,12 +114,7 @@ class BleActiity : FragmentActivity() {
             val mac = mybleDevice?.mac ?: ""
             val name = mybleDevice?.name ?: ""
 
-            // Navigate to SearchActivity
-            Intent(this, SearchActivity::class.java).apply {
-                putExtra("mac", mac)
-                putExtra("name", name)
-                startActivity(this)
-            }
+            SearchActivity.start(this, mac, name)
 
             Log.e("PreferencesUtil", "Reset triggered and SearchActivity started")
         }
@@ -311,11 +306,8 @@ class BleActiity : FragmentActivity() {
         val mac = mybleDevice?.takeIf { isConnect }?.mac ?: ""
         val name = mybleDevice?.takeIf { isConnect }?.name ?: ""
 
-        val intent = Intent(this, SearchActivity::class.java).apply {
-            putExtra("mac", mac)
-            putExtra("name", name)
-        }
-        startActivity(intent)
+        // Use the new start function
+        SearchActivity.start(this, mac, name)
     }
 
     private lateinit var viewPager: ViewPager2

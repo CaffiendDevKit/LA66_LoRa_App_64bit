@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.os.Looper
@@ -19,6 +20,7 @@ import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.BaseAdapter
 import android.widget.CompoundButton
@@ -29,12 +31,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.android.identity.util.HexUtil
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationAvailability
 import com.google.android.gms.location.LocationCallback
@@ -98,8 +100,19 @@ class MainActivity : AppCompatActivity(),
         setContentView(R.layout.activity_lan)
 
         // Set up window properties
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false) // Adjust insets handling for Android 11+
+            window.insetsController?.setSystemBarsAppearance(
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+            )
+        } else {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        }
+
+        // Set the status bar color
         val color = ContextCompat.getColor(this, R.color.transparent)
         window.statusBarColor = color
 
@@ -143,10 +156,10 @@ class MainActivity : AppCompatActivity(),
     private val seleteHex = false
 
     fun initView() {
-        btnSwitch = findViewById<SwitchCompat>(R.id.btn_switch)
-        btnSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
+        btnSwitch = findViewById(R.id.btn_switch)
+        btnSwitch.setOnCheckedChangeListener { _, isChecked ->
             isTime = isChecked
-        })
+        }
         img1 = findViewById<ImageView>(R.id.img1)
         textStatus1 = findViewById<TextView>(R.id.text_statu1)
         textStatus2 = findViewById<TextView>(R.id.text_statu2)
@@ -429,6 +442,7 @@ class MainActivity : AppCompatActivity(),
     var driver: UsbSerialDriver? = null
     var manager1: UsbManager? = null
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Throws(Exception::class)
     fun getDriver() {
         // Find all available drivers from attached devices.
@@ -466,7 +480,6 @@ class MainActivity : AppCompatActivity(),
             Log.e("UsbDeviceConnection", "manager.openDevice(driver.getDevice())")
             // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
             return
-        } else {
         }
         Log.e("UsbDeviceConnection123", "manager.openDevice(driver.getDevice())")
         if (MyApplication.port != null) {

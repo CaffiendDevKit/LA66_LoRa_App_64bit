@@ -1,102 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/rl_titlebar"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:background="@color/statuBar">
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/statuBar"
+        app:title="@string/device_manager"
+        app:titleTextColor="@color/white"
+        app:navigationIcon="@mipmap/back_w"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <RelativeLayout
-            android:id="@+id/rl_titlebar1"
-            android:layout_width="match_parent"
-            android:layout_height="?android:attr/actionBarSize"
-            android:layout_alignParentBottom="true">
-
-            <RelativeLayout
-                android:id="@+id/title_left"
-                android:layout_width="100dp"
-                android:layout_height="match_parent"
-                android:layout_alignParentLeft="true"
-                android:layout_centerVertical="true"
-                android:layout_marginLeft="12dp">
-
-                <ImageView
-                    android:src="@mipmap/back_w"
-                    android:layout_width="12dp"
-                    android:layout_height="21dp"
-                    android:layout_centerVertical="true"  />
-            </RelativeLayout>
-
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:gravity="center"
-                android:singleLine="true"
-                android:text="@string/device_manager"
-                android:textColor="@color/white"
-                android:textSize="18sp" />
-
-
-            <RelativeLayout
-                android:id="@+id/btn_right"
-                android:layout_width="80dp"
-                android:layout_height="match_parent"
-                android:layout_alignParentRight="true"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="12dp">
-
-
-            </RelativeLayout>
-        </RelativeLayout>
-    </RelativeLayout>
-
-
+    <!-- Status Text -->
     <TextView
-        android:gravity="center"
         android:id="@+id/txt2"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/img_11"
-        android:layout_centerHorizontal="true"
-        android:layout_marginVertical="10dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
         android:text="未连接"
         android:textColor="@color/black666"
         android:textSize="20sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <LinearLayout
-        android:layout_gravity="center_horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@+id/txt2"
-        android:layout_centerHorizontal="true"
-        android:orientation="vertical">
+    <!-- Divider -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_margin="16dp"
+        android:background="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/txt2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- RecyclerView inside SwipeRefreshLayout -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/txt2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <View
-            android:layout_width="345dp"
-            android:layout_height="1dp"
-            android:layout_marginHorizontal="15dp"
-            android:background="@color/white" />
-
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeRefreshLayout"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:scrollbars="vertical" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-            <ListView
-                android:id="@+id/listView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"></ListView>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-    </LinearLayout>
-
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
