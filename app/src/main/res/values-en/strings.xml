@@ -98,5 +98,10 @@
     <string name="ok">Ok</string>
     <string name="page_title">Page Title</string>
     <string name="unsupported_device_message">Device currently not supported</string>
+    <string name="device_already_connected">Connected to the device</string>
+    <string name="new_device_found">New device found</string>
+    <string name="reconnect_to_new_device">Reconnect to new device</string>
+    <string name="permission_denied_message">Android Permissions Denied</string>
+
 
 </resources>

@@ -5,4 +5,5 @@
     <string name="cancel">Cancel</string>
     <string name="ok">Ok</string>
     <string name="page_title">Page Title</string>
+    <string name="permission_denied_message">Android Permissions Denied</string>
 </resources>

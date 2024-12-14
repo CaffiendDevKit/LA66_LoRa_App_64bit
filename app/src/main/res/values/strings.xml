@@ -112,4 +112,9 @@
     <string name="ok">Ok</string>
     <string name="page_title">Page Title</string>
     <string name="unsupported_device_message">暂不支持连接该设备</string>
+    <string name="device_already_connected">已连接该设备</string>
+    <string name="new_device_found">发现新设备</string>
+    <string name="reconnect_to_new_device">是否从新连接到新设备</string>
+    <string name="permission_denied_message">Android Permissions Denied</string>
+
 </resources>
