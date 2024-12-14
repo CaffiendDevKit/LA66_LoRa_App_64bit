@@ -1,15 +1,57 @@
-*.iml
+# Gradle files
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
+/.gradle
+/captures
+.externalNativeBuild
+
+# IntelliJ IDEA/Android Studio
+.idea/
+/*.iml
+
+# Android Studio generated files
+.DS_Store
+/build/
+.cxx/
+
+# Build output
+*.apk
+*.ap_
+*.dex
+*.class
+*.jar
+*.war
+*.ear
+*.so
+*.obj
+*.o
+*.a
+*.log
+
+# Signing information
+/signing.properties
+*.keystore
+
+# Dependency directories
+/.idea/libraries/
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+
+# Generated files
+generated/
+gen/
+
+# Miscellaneous
+*.swp
+*.swo
+Thumbs.db
+
+# Node.js (if using React Native or other JS tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# JetBrains Fleet
+.idea.fleet/
