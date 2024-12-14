@@ -103,6 +103,8 @@ class MainActivity : AppCompatActivity(),
         Log.d("MainActivity", "onCreate started")
         setContentView(R.layout.activity_lan)
         Log.d("MainActivity", "Layout set successfully")
+        // Keep the screen on
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         try {
             // Set up window properties
