@@ -100,8 +100,8 @@ class SearchActivity : AppCompatActivity() {
                 EventBus.getDefault().post(messageEvent)
             }
         })
-        if (mac!!.length > 0) {
-            txt2.setText((if (name!!.length > 0) name else mac) + "   " + resources.getString(R.string.on_connected))
+        if (mac.length > 0) {
+            txt2.setText((if (name.length > 0) name else mac) + "   " + resources.getString(R.string.on_connected))
         } else {
             txt2.setText(resources.getString(R.string.no_connected))
         }
@@ -184,7 +184,7 @@ class SearchActivity : AppCompatActivity() {
         if (event.id != EventBusId.linkSuccess) {
             return
         }
-        txt2!!.text = event.name + "   " + resources.getString(R.string.on_connected)
+        txt2.text = event.name + "   " + resources.getString(R.string.on_connected)
     }
 
     fun setble() {

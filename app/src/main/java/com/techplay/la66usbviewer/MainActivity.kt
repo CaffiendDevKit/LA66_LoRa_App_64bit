@@ -18,6 +18,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.text.InputType
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsetsController
@@ -35,6 +36,7 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -80,7 +82,7 @@ class MainActivity : AppCompatActivity(),
 
     private lateinit var img1: ImageView
 
-    internal lateinit var listView: ListView
+    //internal lateinit var listView: ListView
     private lateinit var recyclerView: RecyclerView
     private lateinit var logAdapter: LogAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
@@ -95,34 +97,44 @@ class MainActivity : AppCompatActivity(),
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "onCreate started")
         setContentView(R.layout.activity_lan)
+        Log.d("MainActivity", "Layout set successfully")
 
-        // Set up window properties
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false) // Adjust insets handling for Android 11+
-            window.insetsController?.setSystemBarsAppearance(
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-            )
-        } else {
-            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        try {
+            // Set up window properties
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false) // Adjust insets handling for Android 11+
+                window.insetsController?.setSystemBarsAppearance(
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                )
+            } else {
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            }
+
+            // Set the status bar color
+            val color = ContextCompat.getColor(this, R.color.transparent)
+            window.statusBarColor = color
+            Log.d("MainActivity", "Window properties configured")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error configuring window properties", e)
         }
-
-        // Set the status bar color
-        val color = ContextCompat.getColor(this, R.color.transparent)
-        window.statusBarColor = color
 
         // Load location time preference
         locationTime = PreferencesUtil.getInt(this@MainActivity, "locationTime", locationTime)
+        Log.d("MainActivity", "locationTime retrieved: $locationTime")
 
         // Initialize the permission launcher
         requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
+            Log.d("MainActivity", "Permission result: $isGranted")
             if (isGranted) {
                 initMap()
             } else {
@@ -131,11 +143,18 @@ class MainActivity : AppCompatActivity(),
         }
 
         // Initialize views and other components
+        Log.d("MainActivity", "Initializing views")
         initView()
+        Log.d("MainActivity", "Views initialized")
+
+        Log.d("MainActivity", "Calling time3()")
         time3()
+        Log.d("MainActivity", "time3() completed")
 
         // Check and request permissions
+        Log.d("MainActivity", "Checking permissions")
         checkAndRequestPermissions()
+        Log.d("MainActivity", "Permissions check completed")
     }
 
     private fun checkAndRequestPermissions() {
@@ -155,8 +174,11 @@ class MainActivity : AppCompatActivity(),
 
     private val seleteHex = false
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun initView() {
+        Log.d("initView", "Initializing initView")
         btnSwitch = findViewById(R.id.btn_switch)
+        Log.d("initView", "Initialized btnSwitch")
         btnSwitch.setOnCheckedChangeListener { _, isChecked ->
             isTime = isChecked
         }
@@ -165,6 +187,7 @@ class MainActivity : AppCompatActivity(),
         textStatus2 = findViewById<TextView>(R.id.text_statu2)
         textStatus3 = findViewById<TextView>(R.id.text_statu3)
         textStatus31 = findViewById<TextView>(R.id.text_statu31)
+        Log.d("initView", "Initialized item group 1")
 
         findViewById<View>(R.id.btn_Reconnection).setOnClickListener {
             XPopup.Builder(this@MainActivity).asConfirm("Is Connection la66?", "",
@@ -191,15 +214,28 @@ class MainActivity : AppCompatActivity(),
                 }, { }, false
             ).show()
         }
+        Log.d("initView", "Initialized item group 2")
 
         //        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        listView = findViewById<ListView>(R.id.listView)
-        listView.transcriptMode = ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL
-        listView.isStackFromBottom = true
+        recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
+        // Setting the layout manager for the RecyclerView
+        recyclerView.layoutManager = LinearLayoutManager(this).apply {
+            stackFromEnd = true // This replaces `isStackFromBottom` for RecyclerView
+        }
+        // Initialize the adapter
         logAdapter = LogAdapter(this)
-        logAdapter.setSeleteHex(seleteHex)
+        logAdapter.setSelectHex(seleteHex)
         logAdapter.addResult(logList)
-        listView.adapter = logAdapter
+        // Attach the adapter to the RecyclerView
+        recyclerView.adapter = logAdapter
+
+// To mimic `TRANSCRIPT_MODE_ALWAYS_SCROLL`, add a scroll listener
+        recyclerView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (logList.isNotEmpty()) {
+                recyclerView.scrollToPosition(logAdapter.itemCount - 1)
+            }
+        }
+        Log.d("initView", "Initialized listView")
         //        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
     //            @Override
     //            public void onRefresh() {
@@ -400,7 +436,7 @@ class MainActivity : AppCompatActivity(),
             runOnUiThread {
                 logAdapter.addResult(logList)
                 logAdapter.notifyDataSetChanged()
-                listView.setSelection(listView.bottom)
+                recyclerView.scrollToPosition(logAdapter.itemCount - 1)
             }
             if (isConnect) {
                 val bytes = hex1.chunked(2)
@@ -571,33 +607,37 @@ private var myService: BackstageService? = null
     private val receiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == ACTION_USB_PERMISSION) {
-                val granted = intent.extras!!.getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED)
-                Log.e("BroadcastReceiver", "BroadcastReceiver")
-                if (granted) {
-                    try {
-                        getConnection()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                val isPermissionGranted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                val usbDevice: UsbDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice!!::class.java)
                 } else {
-                    val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
-                    if (intent.getBooleanExtra(
-                            UsbManager.EXTRA_PERMISSION_GRANTED,
-                            false
-                        ) && driver!!.device == device
-                    ) {
-                        try {
-                            getConnection()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    } else {
-                        //没有通讯权限
-                        error()
-                    }
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                 }
 
-                context.unregisterReceiver(this)
+                Log.e("BroadcastReceiver", "Received USB permission intent")
+
+                if (isPermissionGranted && usbDevice != null) {
+                    try {
+                        if (driver?.device == usbDevice) {
+                            getConnection()
+                        } else {
+                            error("Device mismatch or not recognized")
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        error("Failed to establish connection: ${e.message}")
+                    }
+                } else {
+                    error("Permission denied or device null")
+                }
+
+                // Always unregister receiver to prevent memory leaks
+                try {
+                    context.unregisterReceiver(this)
+                } catch (e: IllegalArgumentException) {
+                    Log.e("BroadcastReceiver", "Receiver already unregistered: ${e.message}")
+                }
             }
         }
     }
@@ -633,6 +673,7 @@ private var myService: BackstageService? = null
             timer3 = Timer()
         }
         timer3!!.schedule(object : TimerTask() {
+            @RequiresApi(Build.VERSION_CODES.TIRAMISU)
             override fun run() {
                 if (!isConnect) {
                     try {
@@ -703,19 +744,15 @@ private var myService: BackstageService? = null
                                 Log.e("***777", TextUtils.decode(str))
                                 Log.e("***7771", "$sendTime*")
                                 //                                text_statu3.setText("LoRaWAN RSSI:" + TextUtils.decode("2D" + str));
-                                textStatus31.setText(TextUtils.decode("2D$str"))
-                                val rssi = Integer.valueOf(TextUtils.decode(str))
-                                if (rssi > 129) {
-                                    img1.setImageDrawable(resources.getDrawable(R.mipmap.img_rssi1))
-                                } else if (rssi > 109) {
-                                    img1.setImageDrawable(resources.getDrawable(R.mipmap.img_rssi2))
-                                } else if (rssi > 90) {
-                                    img1.setImageDrawable(resources.getDrawable(R.mipmap.img_rssi3))
-                                } else if (rssi > 70) {
-                                    img1.setImageDrawable(resources.getDrawable(R.mipmap.img_rssi4))
-                                } else {
-                                    img1.setImageDrawable(resources.getDrawable(R.mipmap.img_rssi5))
+                                val rssi = str.toIntOrNull() ?: 0 // Safely convert string to integer with fallback to 0
+                                val drawableRes = when {
+                                    rssi > 129 -> R.mipmap.img_rssi1
+                                    rssi > 109 -> R.mipmap.img_rssi2
+                                    rssi > 90 -> R.mipmap.img_rssi3
+                                    rssi > 70 -> R.mipmap.img_rssi4
+                                    else -> R.mipmap.img_rssi5
                                 }
+                                img1.setImageDrawable(ContextCompat.getDrawable(applicationContext, drawableRes))
                                 if (dataList.size > 0) dataList.removeAt(dataList.size - 1)
                                 sendTime = 0
                                 isSendData = false
@@ -775,12 +812,12 @@ private var myService: BackstageService? = null
                             logAdapter.addResult(logList)
                             logAdapter.notifyDataSetChanged()
 
-                            listView.setSelection(listView.bottom)
+                            recyclerView.scrollToPosition(logAdapter.itemCount - 1)
 
                             startTime = 0
                             str = ""
                             Log.e("Exception", "notifyDataSetChanged:" + logList.size)
-                            Log.e("Exception", "notifyDataSetChanged:" + listView.bottom)
+                            Log.e("Exception", "notifyDataSetChanged:" + (logAdapter.itemCount - 1))
                             Log.e("Exception", "notifyDataSetChanged")
                         } catch (e: Exception) {
                             Log.e("Exception", "Exceptiontime1")
@@ -957,72 +994,56 @@ private var myService: BackstageService? = null
 
 
 
-    inner class LogAdapter(private val context: Context) : BaseAdapter() {
-        private var seleteHex: Boolean? = null
-        private val logList: MutableList<LogBean> = ArrayList()
-        private val mac: String? = null
+    class LogAdapter(private val context: Context) : RecyclerView.Adapter<LogAdapter.ViewHolder>() {
 
-        fun setSeleteHex(seleteHex: Boolean?) {
-            this.seleteHex = seleteHex
+        private var selectHex: Boolean = false
+        private val logList: MutableList<LogBean> = mutableListOf()
+
+        // Setter for selectHex
+        fun setSelectHex(selectHex: Boolean) {
+            this.selectHex = selectHex
         }
 
-        fun addResult(characteristicList: List<LogBean>?) {
-    //            for ( int i=0;i<characteristicList.size();i++ ){
-    //
-    //            }
-
+        // Add new results to the adapter and refresh
+        fun addResult(characteristicList: List<LogBean>) {
             logList.clear()
-            logList.addAll(characteristicList!!)
+            logList.addAll(characteristicList)
             notifyDataSetChanged()
-            listView.setSelection(listView.getBottom())
-
-            //            this.logList=characteristicList;
         }
 
+        // Clear the log list
         fun clear() {
             logList.clear()
+            notifyDataSetChanged()
         }
 
-        override fun getCount(): Int {
-            return logList.size
+        // ViewHolder to cache view references
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val txtLog: TextView = itemView.findViewById(R.id.txt_log)
         }
 
-        override fun getItem(position: Int): LogBean? {
-            if (position > logList.size) return null
-            return logList[position]
+        // Create new views (invoked by the layout manager)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(context).inflate(R.layout.adapter_log, parent, false)
+            return ViewHolder(view)
         }
 
-        override fun getItemId(position: Int): Long {
-            return 0
-        }
+        // Replace the contents of a view (invoked by the layout manager)
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val logBean = logList[position]
+            val text = if (selectHex) TextUtils.strToASCII(logBean.text) else logBean.text
+            holder.txtLog.text = text
 
-        override fun getView(position: Int, convertView: View, parent: ViewGroup): View {
-            var convertView = convertView
-            val holder: ViewHolder
-            if (convertView != null) {
-                holder = convertView.tag as ViewHolder
+            val textColor = if (logBean.type == 1) {
+                ContextCompat.getColor(context, R.color.black)
             } else {
-                convertView = View.inflate(context, R.layout.adapter_log, null)
-                holder = ViewHolder()
-                holder.txt_log = convertView.findViewById<View>(R.id.txt_log) as TextView
-                convertView.tag = holder
+                ContextCompat.getColor(context, R.color.red)
             }
-            //            holder.txt_title.setText("数据:");
-            if (seleteHex!!) {
-                holder.txt_log!!.text = TextUtils.strToASCII(logList[position].text)
-            } else {
-                holder.txt_log?.setText(logList[position].text)
-            }
-            if (logList[position].type === 1) {
-                holder.txt_log!!.setTextColor(context.resources.getColor(R.color.black))
-            } else {
-                holder.txt_log!!.setTextColor(context.resources.getColor(R.color.red))
-            }
-            return convertView
+            holder.txtLog.setTextColor(textColor)
         }
 
-        inner class ViewHolder {
-            var txt_log: TextView? = null
-        }
+        // Return the size of your dataset (invoked by the layout manager)
+        override fun getItemCount(): Int = logList.size
     }
+
 }

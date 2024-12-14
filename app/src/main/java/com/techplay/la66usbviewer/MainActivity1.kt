@@ -210,9 +210,9 @@ class MainActivity1 : AppCompatActivity() {
                     if (d.name != null) {
                         Log.e("setble99Name:", d.name)
                         mResultAdapter.addResult("发现蓝牙设备:" + d.name)
-                        mResultAdapter!!.notifyDataSetChanged()
+                        mResultAdapter.notifyDataSetChanged()
                         if (d.name.equals("AC696X_1(BLE)", ignoreCase = true)) {
-                            txtble!!.text = "发现蓝牙设备"
+                            txtble.text = "发现蓝牙设备"
                             mybleDevice = d
                         }
                     } else {
@@ -236,7 +236,7 @@ class MainActivity1 : AppCompatActivity() {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     fun link(bleDevice: BleDevice?) {
         mResultAdapter.clear()
-        mResultAdapter!!.notifyDataSetChanged()
+        mResultAdapter.notifyDataSetChanged()
         BleManager.getInstance().connect(bleDevice, object : BleGattCallback() {
             override fun onStartConnect() {
                 Log.e("setble88:", "开始连接")
@@ -250,7 +250,7 @@ class MainActivity1 : AppCompatActivity() {
             override fun onConnectSuccess(bleDevice: BleDevice, gatt: BluetoothGatt, status: Int) {
                 Log.e("setble88:", "连接成功")
                 Log.e("setble88:", "状态码:$status")
-                txtble!!.text = "蓝牙连接成功"
+                txtble.text = "蓝牙连接成功"
                 commet()
             }
 
@@ -531,7 +531,7 @@ class MainActivity1 : AppCompatActivity() {
 
     private fun add(aa: String) {
         mResultAdapter.addResult(aa)
-        mResultAdapter!!.notifyDataSetChanged()
+        mResultAdapter.notifyDataSetChanged()
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)

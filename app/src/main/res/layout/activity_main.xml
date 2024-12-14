@@ -91,12 +91,15 @@
     <!-- EditText -->
     <EditText
         android:id="@+id/editText"
+        android:minHeight="48dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="@string/instructions"
+        android:inputType="text"
         android:textColor="#000000"
         android:textColorHint="#000000"
+        android:importantForAccessibility="yes"
         app:layout_constraintTop_toBottomOf="@id/btn7"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
