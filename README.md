@@ -6,3 +6,5 @@ LA66 Mobile APP Source code. See [this link](http://wiki.dragino.com/xwiki/bin/v
 
 I have began refactoring the App to kotlin, is currently hase base functionality.
 If you find any errors let me know and I will see if I have time to fix them.
+
+Find the Alpha APK in the releasees
